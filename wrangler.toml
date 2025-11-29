@@ -1,0 +1,28 @@
+name = "clickup-taskmaster-mcp"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects for stateful MCP sessions
+[[durable_objects.bindings]]
+name = "MCP_OBJECT"
+class_name = "ClickUpMCP"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ClickUpMCP"]
+
+# KV namespace for OAuth state storage
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "" # Run: wrangler kv namespace create "OAUTH_KV"
+
+[vars]
+# Your specific ClickUp configuration
+DEFAULT_TEAM_ID = "8472392"
+DEFAULT_LIST_ID = "176135389"
+
+# Secrets (set via wrangler secret put)
+# CLICKUP_CLIENT_ID = ""
+# CLICKUP_CLIENT_SECRET = ""
+# COOKIE_ENCRYPTION_KEY = ""

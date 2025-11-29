@@ -1,0 +1,25 @@
+{
+  "name": "clickup-taskmaster-cloudflare-mcp",
+  "version": "1.0.0",
+  "description": "Remote MCP server for ClickUp task management on Cloudflare Workers",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.0.5",
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "agents": "^0.0.98",
+    "hono": "^4.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.0.0",
+    "wrangler": "^3.91.0"
+  }
+}
