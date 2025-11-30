@@ -15,7 +15,7 @@ new_classes = ["ClickUpMCP"]
 # KV namespace for OAuth state storage
 [[kv_namespaces]]
 binding = "OAUTH_KV"
-id = "" # Run: wrangler kv namespace create "OAUTH_KV"
+id = "53d8512f2621437f9e276953adc05a40"
 
 [vars]
 # Your specific ClickUp configuration
