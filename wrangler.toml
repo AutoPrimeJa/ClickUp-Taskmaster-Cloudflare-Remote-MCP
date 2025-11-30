@@ -8,9 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 name = "MCP_OBJECT"
 class_name = "MyMCP"
 
-[[migrations]]
-tag = "v3"
-new_sqlite_classes = ["MyMCP"]
+# No migrations needed - MyMCP already exists
 
 # KV namespace for OAuth state storage
 [[kv_namespaces]]
