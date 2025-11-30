@@ -233,6 +233,34 @@ export class ClickUpMCP extends McpAgent<Env, State, {}> {
   }
 }
 
-// Use McpAgent.mount() - the CORRECT way for Cloudflare MCP servers
-// This handles /sse, /message, SSE protocol, and CORS automatically
-export default ClickUpMCP.mount("/sse");
+// Export the MCP server with proper routing
+export default {
+  fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const url = new URL(request.url);
+
+    // SSE transport (what Claude.ai uses)
+    if (url.pathname === "/sse" || url.pathname === "/sse/message") {
+      return ClickUpMCP.serveSSE("/sse").fetch(request, env, ctx);
+    }
+
+    // Standard MCP transport
+    if (url.pathname === "/mcp") {
+      return ClickUpMCP.serve("/mcp").fetch(request, env, ctx);
+    }
+
+    // Health check
+    if (url.pathname === "/" || url.pathname === "") {
+      return new Response(JSON.stringify({
+        status: "online",
+        name: "ClickUp Taskmaster MCP",
+        version: "1.0.0",
+        endpoints: { sse: "/sse", mcp: "/mcp" },
+        has_token: !!env.CLICKUP_API_TOKEN,
+      }, null, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
+};
