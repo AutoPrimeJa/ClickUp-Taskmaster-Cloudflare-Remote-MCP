@@ -176,17 +176,28 @@ export class MyMCP extends McpAgent<Env, {}, {}> {
   }
 }
 
-// Export handler using exact Cloudflare pattern
+// Export handler with error handling
 export default {
-  fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/sse" || url.pathname === "/sse/message") {
-      return MyMCP.serveSSE("/sse").fetch(request, env, ctx);
-    }
+    try {
+      if (url.pathname === "/sse" || url.pathname === "/sse/message") {
+        return await MyMCP.serveSSE("/sse").fetch(request, env, ctx);
+      }
 
-    if (url.pathname === "/mcp") {
-      return MyMCP.serve("/mcp").fetch(request, env, ctx);
+      if (url.pathname === "/mcp") {
+        return await MyMCP.serve("/mcp").fetch(request, env, ctx);
+      }
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "MCP Error",
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }, null, 2), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     if (url.pathname === "/" || url.pathname === "") {
