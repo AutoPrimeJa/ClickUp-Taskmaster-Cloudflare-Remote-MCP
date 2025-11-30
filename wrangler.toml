@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Durable Objects for stateful MCP sessions
 [[durable_objects.bindings]]
-name = "MCP_OBJECT"
+name = "ClickUpMCP"
 class_name = "ClickUpMCP"
 
 [[migrations]]

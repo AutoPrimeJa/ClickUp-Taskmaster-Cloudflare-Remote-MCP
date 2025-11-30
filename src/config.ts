@@ -14,8 +14,8 @@ export const CLICKUP_CONFIG = {
 
 // Type for environment bindings
 export interface Env {
-  // Durable Object for MCP sessions
-  MCP_OBJECT: DurableObjectNamespace;
+  // Durable Object for MCP sessions (binding name matches class name)
+  ClickUpMCP: DurableObjectNamespace;
 
   // KV for OAuth state
   OAUTH_KV: KVNamespace;
