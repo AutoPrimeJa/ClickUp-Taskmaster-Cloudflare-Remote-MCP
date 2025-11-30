@@ -283,6 +283,3 @@ export default {
     return new Response("Not Found", { status: 404 });
   },
 };
-
-// Re-export the Durable Object class
-export { ClickUpMCP };
