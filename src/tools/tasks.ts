@@ -113,8 +113,8 @@ export async function listTasks(args: z.infer<typeof listTasksSchema>, apiToken:
   }));
 
   return {
-    total: data.tasks?.length || 0,
-    returned: tasks.length,
+    count: tasks.length,
+    limit_used: limit,
     tasks,
   };
 }
