@@ -77,6 +77,9 @@ export async function listTasks(args: z.infer<typeof listTasksSchema>, apiToken:
 
   if (args.archived !== undefined) params.set("archived", String(args.archived));
   if (args.page !== undefined) params.set("page", String(args.page));
+  // Pass limit to ClickUp API to reduce data fetched
+  const limit = Math.min(args.limit || 50, 100);
+  params.set("limit", String(limit));
   if (args.order_by) params.set("order_by", args.order_by);
   if (args.reverse !== undefined) params.set("reverse", String(args.reverse));
   if (args.subtasks !== undefined) params.set("subtasks", String(args.subtasks));
@@ -98,10 +101,9 @@ export async function listTasks(args: z.infer<typeof listTasksSchema>, apiToken:
   }
 
   const data = await response.json();
-  const limit = Math.min(args.limit || 50, 100);
 
-  // Return trimmed summary to avoid bloated responses
-  const tasks = (data.tasks || []).slice(0, limit).map((t: any) => ({
+  // Return trimmed summary (API already limits results)
+  const tasks = (data.tasks || []).map((t: any) => ({
     id: t.id,
     name: t.name,
     status: t.status?.status,
