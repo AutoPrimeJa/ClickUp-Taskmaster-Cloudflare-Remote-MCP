@@ -239,6 +239,20 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    // CORS configuration
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    };
+
+    // Handle CORS preflight requests
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: corsHeaders,
+      });
+    }
+
     // Health check / info endpoint
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(
@@ -264,22 +278,45 @@ export default {
           ],
         }, null, 2),
         {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
         }
       );
     }
 
-    // MCP SSE endpoint
-    if (url.pathname === "/sse" || url.pathname === "/sse/") {
+    // Route MCP endpoints to Durable Object
+    // MCP uses /sse for connection and /messages for sending messages
+    if (
+      url.pathname === "/sse" ||
+      url.pathname === "/sse/" ||
+      url.pathname.startsWith("/messages")
+    ) {
       // Get the Durable Object stub
       const id = env.MCP_OBJECT.idFromName("clickup-taskmaster");
       const stub = env.MCP_OBJECT.get(id);
 
       // Forward the request to the Durable Object
-      return stub.fetch(request);
+      const response = await stub.fetch(request);
+
+      // Apply CORS headers to the response
+      const newHeaders = new Headers(response.headers);
+      for (const [key, value] of Object.entries(corsHeaders)) {
+        newHeaders.set(key, value);
+      }
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
     }
 
     // 404 for unknown routes
-    return new Response("Not Found", { status: 404 });
+    return new Response("Not Found", {
+      status: 404,
+      headers: corsHeaders,
+    });
   },
 };
