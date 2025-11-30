@@ -10,7 +10,7 @@ class_name = "ClickUpMCP"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ClickUpMCP"]
+new_sqlite_classes = ["ClickUpMCP"]
 
 # KV namespace for OAuth state storage
 [[kv_namespaces]]
