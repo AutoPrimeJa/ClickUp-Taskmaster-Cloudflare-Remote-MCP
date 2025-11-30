@@ -56,7 +56,7 @@ interface State {
  * ClickUp MCP Server - Durable Object
  * Each user session gets its own instance
  */
-export class ClickUpMCP extends McpAgent<Env, State, {}> {
+export class MyMCP extends McpAgent<Env, State, {}> {
   server = new McpServer({
     name: "clickup-taskmaster",
     version: "1.0.0",
@@ -240,12 +240,12 @@ export default {
 
     // SSE transport (what Claude.ai uses)
     if (url.pathname === "/sse" || url.pathname === "/sse/message") {
-      return ClickUpMCP.serveSSE("/sse").fetch(request, env, ctx);
+      return MyMCP.serveSSE("/sse").fetch(request, env, ctx);
     }
 
     // Standard MCP transport
     if (url.pathname === "/mcp") {
-      return ClickUpMCP.serve("/mcp").fetch(request, env, ctx);
+      return MyMCP.serve("/mcp").fetch(request, env, ctx);
     }
 
     // Health check
