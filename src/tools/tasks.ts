@@ -6,11 +6,11 @@ export const listTasksSchema = z.object({
   list_id: z.string().optional().describe(`List ID (defaults to ${CLICKUP_CONFIG.LIST_ID})`),
   archived: z.boolean().optional().default(false),
   page: z.number().optional().default(0),
-  limit: z.number().optional().default(20).describe("Max tasks to return (default 20, max 100)"),
+  limit: z.number().optional().default(50).describe("Max tasks to return (default 50, max 100)"),
   order_by: z.enum(["created", "updated", "id", "due_date"]).optional(),
   reverse: z.boolean().optional(),
   subtasks: z.boolean().optional().default(false),
-  statuses: z.array(z.string()).optional(),
+  statuses: z.array(z.string()).optional().describe("Filter by status names, e.g. ['to do'] or ['in progress', 'review']"),
   assignees: z.array(z.string()).optional(),
 });
 
@@ -50,7 +50,7 @@ export const updateTaskSchema = z.object({
 export const taskTools = [
   {
     name: "list_tasks",
-    description: `Get tasks from your ClickUp list (defaults to list ${CLICKUP_CONFIG.LIST_ID}). Use this to see what tasks exist, check status, or find tasks to work on.`,
+    description: `Get tasks from ClickUp list ${CLICKUP_CONFIG.LIST_ID}. IMPORTANT: Use the 'statuses' parameter to filter - e.g. statuses: ["to do"] to get only to-do tasks, or statuses: ["in progress"] for in-progress tasks.`,
     inputSchema: listTasksSchema,
   },
   {
@@ -98,7 +98,7 @@ export async function listTasks(args: z.infer<typeof listTasksSchema>, apiToken:
   }
 
   const data = await response.json();
-  const limit = Math.min(args.limit || 20, 100);
+  const limit = Math.min(args.limit || 50, 100);
 
   // Return trimmed summary to avoid bloated responses
   const tasks = (data.tasks || []).slice(0, limit).map((t: any) => ({
