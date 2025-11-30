@@ -4,16 +4,12 @@
  * This server provides ClickUp task management capabilities via MCP protocol.
  * It connects to a SPECIFIC ClickUp list (ID: 176135389) by default.
  *
- * Supports:
- * - OAuth 2.1 authentication (for Claude.ai integrations)
- * - API token authentication (for simpler setups)
- * - SSE transport for real-time communication
+ * This is an AUTHLESS server - it uses a pre-configured API token.
+ * The token is stored securely in Cloudflare secrets.
  */
 
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import OAuthProvider from "@cloudflare/workers-oauth-provider";
-import { Hono } from "hono";
 
 import { Env, CLICKUP_CONFIG } from "./config";
 import {
@@ -51,12 +47,6 @@ import {
   updatePageSchema,
 } from "./tools/docs";
 
-// Props passed through OAuth
-interface UserProps {
-  accessToken: string;
-  userId?: string;
-}
-
 // State for the MCP session
 interface State {
   lastListId?: string;
@@ -66,7 +56,7 @@ interface State {
  * ClickUp MCP Server - Durable Object
  * Each user session gets its own instance
  */
-export class ClickUpMCP extends McpAgent<Env, State, UserProps> {
+export class ClickUpMCP extends McpAgent<Env, State, {}> {
   server = new McpServer({
     name: "clickup-taskmaster",
     version: "1.0.0",
@@ -75,9 +65,9 @@ export class ClickUpMCP extends McpAgent<Env, State, UserProps> {
   initialState: State = {};
 
   async init() {
-    // Get the API token from props (OAuth) or environment (simple auth)
+    // Get the API token from environment
     const getToken = (): string => {
-      return this.props?.accessToken || this.env.CLICKUP_API_TOKEN || "";
+      return this.env.CLICKUP_API_TOKEN || "";
     };
 
     // Register all task tools
@@ -243,38 +233,56 @@ export class ClickUpMCP extends McpAgent<Env, State, UserProps> {
   }
 }
 
-// Simple API handler for non-OAuth setups
-const app = new Hono<{ Bindings: Env }>();
+// Export the MCP server directly (authless mode)
+// The /sse endpoint is handled by McpAgent.mount()
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
 
-// Health check
-app.get("/", (c) => {
-  return c.json({
-    name: "ClickUp Taskmaster MCP",
-    version: "1.0.0",
-    description: "Remote MCP server for ClickUp task management",
-    defaultList: CLICKUP_CONFIG.LIST_ID,
-    defaultTeam: CLICKUP_CONFIG.TEAM_ID,
-    endpoints: {
-      sse: "/sse",
-      oauth: {
-        authorize: "/authorize",
-        token: "/token",
-        callback: "/callback",
-      },
-    },
-  });
-});
+    // Health check / info endpoint
+    if (url.pathname === "/" || url.pathname === "") {
+      return new Response(
+        JSON.stringify({
+          name: "ClickUp Taskmaster MCP",
+          version: "1.0.0",
+          description: "Remote MCP server for ClickUp task management",
+          defaultList: CLICKUP_CONFIG.LIST_ID,
+          defaultTeam: CLICKUP_CONFIG.TEAM_ID,
+          endpoint: "/sse",
+          tools: [
+            "list_tasks",
+            "get_task",
+            "create_task",
+            "update_task",
+            "get_list_custom_fields",
+            "set_custom_field",
+            "post_comment",
+            "get_comments",
+            "create_doc",
+            "get_doc",
+            "update_page",
+          ],
+        }, null, 2),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
-// Export the OAuth provider wrapper
-// This handles /authorize, /token, /register, /callback, and /sse routes
-export default new OAuthProvider({
-  apiRoute: "/sse",
-  apiHandler: ClickUpMCP.mount("/sse"),
-  defaultHandler: app,
-  authorizeEndpoint: "/authorize",
-  tokenEndpoint: "/token",
-  clientRegistrationEndpoint: "/register",
-});
+    // MCP SSE endpoint
+    if (url.pathname === "/sse" || url.pathname === "/sse/") {
+      // Get the Durable Object stub
+      const id = env.MCP_OBJECT.idFromName("clickup-taskmaster");
+      const stub = env.MCP_OBJECT.get(id);
+
+      // Forward the request to the Durable Object
+      return stub.fetch(request);
+    }
+
+    // 404 for unknown routes
+    return new Response("Not Found", { status: 404 });
+  },
+};
 
 // Re-export the Durable Object class
-export { ClickUpMCP as DurableObject };
+export { ClickUpMCP };
