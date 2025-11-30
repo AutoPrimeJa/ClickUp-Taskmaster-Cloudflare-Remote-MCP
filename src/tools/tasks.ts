@@ -6,9 +6,10 @@ export const listTasksSchema = z.object({
   list_id: z.string().optional().describe(`List ID (defaults to ${CLICKUP_CONFIG.LIST_ID})`),
   archived: z.boolean().optional().default(false),
   page: z.number().optional().default(0),
+  limit: z.number().optional().default(20).describe("Max tasks to return (default 20, max 100)"),
   order_by: z.enum(["created", "updated", "id", "due_date"]).optional(),
   reverse: z.boolean().optional(),
-  subtasks: z.boolean().optional().default(true),
+  subtasks: z.boolean().optional().default(false),
   statuses: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
 });
@@ -96,7 +97,24 @@ export async function listTasks(args: z.infer<typeof listTasksSchema>, apiToken:
     throw new Error(`ClickUp API error: ${response.status} ${await response.text()}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  const limit = Math.min(args.limit || 20, 100);
+
+  // Return trimmed summary to avoid bloated responses
+  const tasks = (data.tasks || []).slice(0, limit).map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    status: t.status?.status,
+    priority: t.priority?.priority,
+    due_date: t.due_date,
+    assignees: t.assignees?.map((a: any) => a.username || a.email),
+  }));
+
+  return {
+    total: data.tasks?.length || 0,
+    returned: tasks.length,
+    tasks,
+  };
 }
 
 export async function getTask(args: z.infer<typeof getTaskSchema>, apiToken: string) {
