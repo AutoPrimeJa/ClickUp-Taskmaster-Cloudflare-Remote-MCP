@@ -5,13 +5,12 @@ compatibility_flags = ["nodejs_compat"]
 
 # Durable Objects for stateful MCP sessions
 [[durable_objects.bindings]]
-name = "MyMCP"
+name = "MCP_OBJECT"
 class_name = "MyMCP"
 
 [[migrations]]
-tag = "v2"
+tag = "v3"
 new_sqlite_classes = ["MyMCP"]
-deleted_classes = ["ClickUpMCP"]
 
 # KV namespace for OAuth state storage
 [[kv_namespaces]]
