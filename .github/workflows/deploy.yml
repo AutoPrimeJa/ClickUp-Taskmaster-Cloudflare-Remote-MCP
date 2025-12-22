@@ -23,22 +23,16 @@ jobs:
         run: npm install
 
       - name: Deploy Worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Upload Secrets
         run: |
-          if [ -n "$CLICKUP_CLIENT_ID" ]; then
-            echo "$CLICKUP_CLIENT_ID" | npx wrangler secret put CLICKUP_CLIENT_ID
-          fi
-          if [ -n "$CLICKUP_CLIENT_SECRET" ]; then
-            echo "$CLICKUP_CLIENT_SECRET" | npx wrangler secret put CLICKUP_CLIENT_SECRET
-          fi
-          if [ -n "$COOKIE_ENCRYPTION_KEY" ]; then
-            echo "$COOKIE_ENCRYPTION_KEY" | npx wrangler secret put COOKIE_ENCRYPTION_KEY
-          fi
+          echo "$CLICKUP_CLIENT_ID" | npx wrangler secret put CLICKUP_CLIENT_ID || true
+          echo "$CLICKUP_CLIENT_SECRET" | npx wrangler secret put CLICKUP_CLIENT_SECRET || true
+          echo "$COOKIE_ENCRYPTION_KEY" | npx wrangler secret put COOKIE_ENCRYPTION_KEY || true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
