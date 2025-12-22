@@ -29,5 +29,11 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           secrets: |
             CLICKUP_API_TOKEN
+            CLICKUP_CLIENT_ID
+            CLICKUP_CLIENT_SECRET
+            COOKIE_ENCRYPTION_KEY
         env:
           CLICKUP_API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
+          CLICKUP_CLIENT_ID: ${{ secrets.CLICKUP_CLIENT_ID }}
+          CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
+          COOKIE_ENCRYPTION_KEY: ${{ secrets.COOKIE_ENCRYPTION_KEY }}

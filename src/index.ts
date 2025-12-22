@@ -1,5 +1,8 @@
 /**
  * ClickUp Taskmaster - Remote MCP Server on Cloudflare Workers
+ *
+ * Supports both OAuth 2.0 and API token authentication.
+ * OAuth flow: /oauth/authorize -> /oauth/callback -> token stored in KV
  */
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -28,6 +31,13 @@ import {
   getListCustomFieldsSchema,
   setCustomFieldSchema,
 } from "./tools/custom-fields";
+import {
+  handleAuthorize,
+  handleCallback,
+  handleStatus,
+  handleLogout,
+  getStoredToken,
+} from "./auth/oauth";
 
 // MCP Server class - must be named MyMCP to match binding
 export class MyMCP extends McpAgent<Env, {}, {}> {
@@ -37,7 +47,9 @@ export class MyMCP extends McpAgent<Env, {}, {}> {
   });
 
   async init() {
-    const token = this.env.CLICKUP_API_TOKEN || "";
+    // Get token: prefer OAuth token from KV, fall back to API token
+    const oauthToken = await getStoredToken(this.env);
+    const token = oauthToken || this.env.CLICKUP_API_TOKEN || "";
 
     // list_tasks
     this.server.tool(
@@ -182,6 +194,24 @@ export default {
     const url = new URL(request.url);
 
     try {
+      // OAuth endpoints
+      if (url.pathname === "/oauth/authorize") {
+        return await handleAuthorize(request, env);
+      }
+
+      if (url.pathname === "/oauth/callback") {
+        return await handleCallback(request, env);
+      }
+
+      if (url.pathname === "/oauth/status") {
+        return await handleStatus(request, env);
+      }
+
+      if (url.pathname === "/oauth/logout") {
+        return await handleLogout(request, env);
+      }
+
+      // MCP endpoints
       if (url.pathname === "/sse" || url.pathname === "/sse/message") {
         return await MyMCP.serveSSE("/sse").fetch(request, env, ctx);
       }
@@ -200,12 +230,33 @@ export default {
       });
     }
 
+    // Health check / status endpoint
     if (url.pathname === "/" || url.pathname === "") {
+      // Check for OAuth token asynchronously
+      const oauthToken = await getStoredToken(env);
+      const hasOAuthToken = !!oauthToken;
+      const hasApiToken = !!env.CLICKUP_API_TOKEN;
+
       return new Response(JSON.stringify({
         status: "online",
         name: "ClickUp Taskmaster MCP",
-        endpoints: { sse: "/sse", mcp: "/mcp" },
-        has_token: !!env.CLICKUP_API_TOKEN,
+        version: "1.0.0",
+        endpoints: {
+          sse: "/sse",
+          mcp: "/mcp",
+          oauth: {
+            authorize: "/oauth/authorize",
+            callback: "/oauth/callback",
+            status: "/oauth/status",
+            logout: "/oauth/logout",
+          },
+        },
+        auth: {
+          oauth_configured: !!(env.CLICKUP_CLIENT_ID && env.CLICKUP_CLIENT_SECRET),
+          oauth_token_present: hasOAuthToken,
+          api_token_present: hasApiToken,
+          authenticated: hasOAuthToken || hasApiToken,
+        },
       }, null, 2), { headers: { "Content-Type": "application/json" } });
     }
 
